@@ -1,0 +1,539 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Worklly – From project work to invoice</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: "#2b6cee",
+              "bg-light": "#f6f6f8",
+            },
+            fontFamily: {
+              display: ["Inter", "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body { font-family: "Inter", sans-serif; }
+      .glass-nav { backdrop-filter: blur(8px); background: rgba(255,255,255,0.85); }
+
+      .frame-wrapper {
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
+        background: #f6f6f8;
+      }
+      .frame-wrapper::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        cursor: pointer;
+      }
+      .frame-wrapper:hover::after {
+        background: rgba(0,0,0,0.04);
+      }
+      .frame-expand {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        z-index: 11;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        opacity: 0;
+        transition: all 0.25s ease;
+        pointer-events: none;
+      }
+      .frame-wrapper:hover .frame-expand {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+      }
+
+      /* Fullscreen modal */
+      .screen-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+      .screen-modal.open { display: flex; }
+      .screen-modal .backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.75);
+        backdrop-filter: blur(6px);
+        animation: fadeIn 0.2s ease;
+      }
+      .screen-modal .modal-body {
+        position: relative;
+        width: 94vw;
+        height: 90vh;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 40px 100px rgba(0,0,0,0.4);
+        animation: zoomIn 0.25s ease;
+        background: #f6f6f8;
+      }
+      .screen-modal .modal-body iframe {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: #f6f6f8;
+      }
+      .screen-modal .close-btn {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 10;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(8px);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        transition: background 0.15s;
+      }
+      .screen-modal .close-btn:hover { background: rgba(0,0,0,0.8); }
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      @keyframes zoomIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+      .frame-wrapper.desktop { padding-bottom: 65%; }
+      .frame-wrapper.mobile  { padding-bottom: 90%; }
+
+      .frame-wrapper iframe {
+        position: absolute;
+        top: 0; left: 0;
+        border: 0;
+        background: #f6f6f8;
+        transform-origin: top left;
+      }
+      .frame-wrapper.desktop iframe {
+        width: 1440px;
+        height: 936px;
+        transform: scale(var(--frame-scale, 0.42));
+      }
+      .frame-wrapper.mobile iframe {
+        width: 500px;
+        height: 900px;
+        transform: scale(var(--frame-scale, 0.42));
+      }
+    </style>
+  </head>
+
+  <body class="bg-white text-slate-800 font-display">
+
+    <!-- ═══════════ HEADER ═══════════ -->
+    <nav class="fixed top-0 w-full z-50 glass-nav border-b border-slate-200/60">
+      <div class="max-w-7xl mx-auto px-6 h-[72px] flex items-center justify-between">
+        <div class="flex items-center gap-10">
+          <a class="flex items-center gap-2 group" href="#">
+            <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-lg group-hover:scale-105 transition-transform">W</div>
+            <span class="text-xl font-bold tracking-tight text-primary">Worklly</span>
+          </a>
+          <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-500">
+            <a class="hover:text-primary transition-colors" href="#products">Products</a>
+            <a class="hover:text-primary transition-colors" href="#features">Features</a>
+            <a class="hover:text-primary transition-colors" href="#">Pricing</a>
+          </div>
+        </div>
+        <div class="flex items-center gap-4">
+          <div class="relative group">
+            <button class="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-primary/5 transition-colors text-sm font-medium text-slate-500">
+              <span class="material-icons text-[18px]">language</span>
+              <span>EN</span>
+              <span class="material-icons text-[14px]">expand_more</span>
+            </button>
+            <div class="absolute right-0 top-full mt-2 w-44 bg-white rounded-xl shadow-xl border border-slate-100 py-2 hidden group-hover:block">
+              <a class="flex items-center gap-3 px-4 py-2 hover:bg-primary/5 text-sm font-medium text-primary" href="#">
+                <span class="w-2 h-2 rounded-full bg-primary"></span> English
+              </a>
+              <a class="flex items-center gap-3 px-4 py-2 hover:bg-primary/5 text-sm font-medium text-slate-500" href="#">
+                <span class="w-2 h-2 rounded-full bg-transparent border border-slate-300"></span> Suomi
+              </a>
+              <a class="flex items-center gap-3 px-4 py-2 hover:bg-primary/5 text-sm font-medium text-slate-500" href="#">
+                <span class="w-2 h-2 rounded-full bg-transparent border border-slate-300"></span> Svenska
+              </a>
+            </div>
+          </div>
+          <div class="h-5 w-px bg-slate-200 mx-1"></div>
+          <button class="text-sm font-semibold hover:text-primary transition-colors px-3 py-2">Log in</button>
+          <button class="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-lg shadow-primary/20 transition-all active:scale-95">
+            Free Demo
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ═══════════ HERO ═══════════ -->
+    <section class="pt-36 pb-20 px-6">
+      <div class="max-w-4xl mx-auto text-center">
+        <a href="#products" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/5 border border-primary/15 text-primary text-xs font-bold uppercase tracking-wider mb-8 hover:bg-primary/10 transition-colors">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+          </span>
+          Introducing Worklly 1.0 &rarr;
+        </a>
+        <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-[1.08]">
+          From project work to invoice
+          <span class="text-primary"> — in minutes.</span>
+        </h1>
+        <p class="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
+          Simple work day management for small and medium enterprises. Streamline your workflow and focus on what matters most.
+        </p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <button class="bg-primary hover:bg-primary/90 text-white px-10 py-4 rounded-full text-lg font-bold shadow-xl shadow-primary/25 transition-all active:scale-95 flex items-center justify-center gap-2">
+            Free Demo
+            <span class="material-icons text-[20px]">arrow_forward</span>
+          </button>
+          <button class="bg-white border border-slate-200 hover:border-primary/40 text-slate-600 hover:text-primary px-10 py-4 rounded-full text-lg font-bold transition-all">
+            Learn More
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ PRODUCTS (Workly.io-style alternating sections) ═══════════ -->
+    <section id="products" class="pb-8">
+
+      <!-- ── Product 1: Login Alerts (text LEFT, screen RIGHT) ── -->
+      <div class="py-20 px-6 bg-white">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <div class="w-14 h-14 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-6">
+              <span class="material-icons text-blue-500 text-[28px]">notifications_active</span>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4 leading-tight">Login Alerts</h2>
+            <p class="text-slate-500 text-lg leading-relaxed mb-6">
+              Real-time notifications when team members log in to Worklly. Stay informed about who's working and when — all at a glance on your mobile device.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> Instant push notifications</li>
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> Activity timeline per employee</li>
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> Mobile-first experience</li>
+            </ul>
+            <a href="#" class="inline-flex items-center gap-2 text-primary font-bold hover:gap-3 transition-all">
+              Learn more <span class="material-icons text-[18px]">arrow_forward</span>
+            </a>
+          </div>
+          <div class="relative">
+            <div class="absolute -inset-4 bg-blue-500/8 rounded-3xl blur-2xl"></div>
+            <div class="relative rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-200/60 frame-wrapper mobile">
+              <iframe src="Screen_1_new_version.html" scrolling="no" loading="lazy"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Product 2: Project Management (screen LEFT, text RIGHT) ── -->
+      <div class="py-20 px-6 bg-slate-50/70">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div class="relative order-2 lg:order-1">
+            <div class="absolute -inset-4 bg-indigo-500/8 rounded-3xl blur-2xl"></div>
+            <div class="relative rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-200/60 frame-wrapper desktop">
+              <iframe src="Screen_2.html" scrolling="no" loading="lazy"></iframe>
+            </div>
+          </div>
+          <div class="order-1 lg:order-2">
+            <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center mb-6">
+              <span class="material-icons text-indigo-500 text-[28px]">dashboard</span>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4 leading-tight">Project Management</h2>
+            <p class="text-slate-500 text-lg leading-relaxed mb-6">
+              Organize projects, assign tasks, and track progress in a clean desktop interface. Keep your team focused with clear priorities and real-time status updates.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> Task boards with drag-and-drop</li>
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> Team assignments and deadlines</li>
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> Visual project progress tracking</li>
+            </ul>
+            <a href="#" class="inline-flex items-center gap-2 text-primary font-bold hover:gap-3 transition-all">
+              Learn more <span class="material-icons text-[18px]">arrow_forward</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Product 3: Task Notifications (text LEFT, screen RIGHT) ── -->
+      <div class="py-20 px-6 bg-white">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-6">
+              <span class="material-icons text-emerald-500 text-[28px]">task_alt</span>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4 leading-tight">Task Notifications</h2>
+            <p class="text-slate-500 text-lg leading-relaxed mb-6">
+              Get notified the moment tasks are completed, projects finish, or invoices become ready. Your mobile keeps you updated without opening the app.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> Task completion alerts</li>
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> Project milestone notifications</li>
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> Invoice-ready indicators</li>
+            </ul>
+            <a href="#" class="inline-flex items-center gap-2 text-primary font-bold hover:gap-3 transition-all">
+              Learn more <span class="material-icons text-[18px]">arrow_forward</span>
+            </a>
+          </div>
+          <div class="relative">
+            <div class="absolute -inset-4 bg-emerald-500/8 rounded-3xl blur-2xl"></div>
+            <div class="relative rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-200/60 frame-wrapper mobile">
+              <iframe src="Screen_3.html" scrolling="no" loading="lazy"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Product 4: Invoicing (screen LEFT, text RIGHT) ── -->
+      <div class="py-20 px-6 bg-slate-50/70">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div class="relative order-2 lg:order-1">
+            <div class="absolute -inset-4 bg-amber-500/8 rounded-3xl blur-2xl"></div>
+            <div class="relative rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-200/60 frame-wrapper desktop">
+              <iframe src="Screen_4.html" scrolling="no" loading="lazy"></iframe>
+            </div>
+          </div>
+          <div class="order-1 lg:order-2">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center mb-6">
+              <span class="material-icons text-amber-500 text-[28px]">receipt_long</span>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4 leading-tight">Invoicing</h2>
+            <p class="text-slate-500 text-lg leading-relaxed mb-6">
+              Create professional invoices directly from completed projects. Auto-fill client details, line items, and totals — then send in one click.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> One-click invoice from projects</li>
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> Auto-calculated totals and tax</li>
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> PDF export and email delivery</li>
+            </ul>
+            <a href="#" class="inline-flex items-center gap-2 text-primary font-bold hover:gap-3 transition-all">
+              Learn more <span class="material-icons text-[18px]">arrow_forward</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Product 5: Payment Tracking (text LEFT, screen RIGHT) ── -->
+      <div class="py-20 px-6 bg-white">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <div class="w-14 h-14 rounded-2xl bg-green-500/10 flex items-center justify-center mb-6">
+              <span class="material-icons text-green-500 text-[28px]">paid</span>
+            </div>
+            <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4 leading-tight">Payment Tracking</h2>
+            <p class="text-slate-500 text-lg leading-relaxed mb-6">
+              Know the instant an invoice is paid. Worklly pushes payment confirmations straight to your phone so your cash flow is always visible.
+            </p>
+            <ul class="space-y-3 mb-8">
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> Instant payment confirmation</li>
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> Invoice status at a glance</li>
+              <li class="flex items-center gap-3 text-slate-600"><span class="material-icons text-primary text-[20px]">check_circle</span> Complete billing history</li>
+            </ul>
+            <a href="#" class="inline-flex items-center gap-2 text-primary font-bold hover:gap-3 transition-all">
+              Learn more <span class="material-icons text-[18px]">arrow_forward</span>
+            </a>
+          </div>
+          <div class="relative">
+            <div class="absolute -inset-4 bg-green-500/8 rounded-3xl blur-2xl"></div>
+            <div class="relative rounded-2xl shadow-2xl shadow-slate-900/10 border border-slate-200/60 frame-wrapper mobile">
+              <iframe src="Screen_5.html" scrolling="no" loading="lazy"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ═══════════ FEATURES / BENEFITS (3-column cards like Workly.io) ═══════════ -->
+    <section id="features" class="py-24 px-6 bg-white">
+      <div class="max-w-7xl mx-auto">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-4">Why Teams Choose Worklly</h2>
+          <p class="text-lg text-slate-500 max-w-2xl mx-auto">Everything you need to run your small business — without the complexity of enterprise tools.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg hover:shadow-primary/5 transition-all">
+            <div class="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center mb-5">
+              <span class="material-icons text-red-500 text-[24px]">speed</span>
+            </div>
+            <h3 class="text-xl font-bold mb-3">Save Time</h3>
+            <p class="text-slate-500 leading-relaxed">From project setup to sending invoices — what used to take hours now takes minutes with automated workflows.</p>
+          </div>
+          <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg hover:shadow-primary/5 transition-all">
+            <div class="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-5">
+              <span class="material-icons text-purple-500 text-[24px]">sync</span>
+            </div>
+            <h3 class="text-xl font-bold mb-3">Stay In Sync</h3>
+            <p class="text-slate-500 leading-relaxed">Real-time notifications keep everyone aligned. No more chasing updates — Worklly brings them to you.</p>
+          </div>
+          <div class="bg-slate-50 rounded-2xl p-8 border border-slate-100 hover:shadow-lg hover:shadow-primary/5 transition-all">
+            <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mb-5">
+              <span class="material-icons text-amber-500 text-[24px]">bar_chart</span>
+            </div>
+            <h3 class="text-xl font-bold mb-3">Get Paid Faster</h3>
+            <p class="text-slate-500 leading-relaxed">Automated invoicing and instant payment tracking means less time waiting and more time growing your business.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ CTA BANNER (Workly.io-style) ═══════════ -->
+    <section class="bg-primary py-20 px-6">
+      <div class="max-w-3xl mx-auto text-center">
+        <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Ready to simplify your workday?</h2>
+        <p class="text-lg text-white/70 mb-10">Join hundreds of SMEs already using Worklly to manage projects and invoices effortlessly.</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <button class="bg-white text-primary px-10 py-4 rounded-full text-lg font-bold shadow-xl hover:shadow-2xl transition-all active:scale-95">
+            Get Started Free
+          </button>
+          <button class="border-2 border-white/30 text-white px-10 py-4 rounded-full text-lg font-bold hover:bg-white/10 transition-all">
+            Contact Sales
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ FOOTER ═══════════ -->
+    <footer class="bg-slate-900 text-white pt-16 pb-10">
+      <div class="max-w-7xl mx-auto px-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 mb-14">
+          <div class="col-span-2 lg:col-span-1">
+            <a class="flex items-center gap-2 mb-5" href="#">
+              <div class="w-7 h-7 bg-primary rounded-lg flex items-center justify-center text-white font-bold text-sm">W</div>
+              <span class="text-lg font-bold tracking-tight">Worklly</span>
+            </a>
+            <p class="text-slate-400 text-sm leading-relaxed mb-6">
+              Simple work management for small and medium enterprises.
+            </p>
+            <div class="flex items-center gap-4 text-slate-500">
+              <a class="hover:text-white transition-colors" href="#"><span class="material-icons text-[20px]">public</span></a>
+              <a class="hover:text-white transition-colors" href="#"><span class="material-icons text-[20px]">alternate_email</span></a>
+              <a class="hover:text-white transition-colors" href="#"><span class="material-icons text-[20px]">share</span></a>
+            </div>
+          </div>
+          <div>
+            <h4 class="font-bold text-white mb-5 text-sm uppercase tracking-wider">Products</h4>
+            <ul class="space-y-3 text-sm text-slate-400">
+              <li><a class="hover:text-white transition-colors" href="#">Login Alerts</a></li>
+              <li><a class="hover:text-white transition-colors" href="#">Project Management</a></li>
+              <li><a class="hover:text-white transition-colors" href="#">Task Notifications</a></li>
+              <li><a class="hover:text-white transition-colors" href="#">Invoicing</a></li>
+              <li><a class="hover:text-white transition-colors" href="#">Payment Tracking</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-bold text-white mb-5 text-sm uppercase tracking-wider">Support</h4>
+            <ul class="space-y-3 text-sm text-slate-400">
+              <li><a class="hover:text-white transition-colors" href="#">Help Center</a></li>
+              <li><a class="hover:text-white transition-colors" href="#">Community</a></li>
+              <li><a class="hover:text-white transition-colors" href="#">Contact Us</a></li>
+              <li><a class="hover:text-white transition-colors" href="#">API Docs</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-bold text-white mb-5 text-sm uppercase tracking-wider">Legal</h4>
+            <ul class="space-y-3 text-sm text-slate-400">
+              <li><a class="hover:text-white transition-colors" href="#">Privacy Policy</a></li>
+              <li><a class="hover:text-white transition-colors" href="#">Terms of Service</a></li>
+              <li><a class="hover:text-white transition-colors" href="#">Cookie Policy</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-slate-500">
+          <p>&copy; 2025 Worklly. All rights reserved.</p>
+          <div class="flex items-center gap-2">
+            <span class="material-icons text-[14px]">location_on</span>
+            <span>Helsinki, Finland</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Fullscreen Modal -->
+    <div class="screen-modal" id="screenModal">
+      <div class="backdrop" id="modalBackdrop"></div>
+      <div class="modal-body">
+        <button class="close-btn" id="modalClose">
+          <span class="material-icons">close</span>
+        </button>
+        <iframe id="modalIframe" src="" scrolling="no"></iframe>
+      </div>
+    </div>
+
+    <script>
+      function scaleFrames() {
+        document.querySelectorAll('.frame-wrapper').forEach(wrapper => {
+          const iframe = wrapper.querySelector('iframe');
+          if (!iframe) return;
+          const nativeW = parseInt(iframe.style.width || getComputedStyle(iframe).width);
+          const containerW = wrapper.offsetWidth;
+          const s = containerW / nativeW;
+          wrapper.style.setProperty('--frame-scale', s);
+
+          if (!wrapper.querySelector('.frame-expand')) {
+            const hint = document.createElement('div');
+            hint.className = 'frame-expand';
+            hint.innerHTML = '<span class="material-icons" style="font-size:28px;">fullscreen</span>';
+            wrapper.appendChild(hint);
+          }
+        });
+      }
+
+      const modal = document.getElementById('screenModal');
+      const modalIframe = document.getElementById('modalIframe');
+
+      function openModal(src) {
+        modalIframe.src = src;
+        modal.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeModal() {
+        modal.classList.remove('open');
+        document.body.style.overflow = '';
+        setTimeout(() => { modalIframe.src = ''; }, 300);
+      }
+
+      document.getElementById('modalClose').addEventListener('click', closeModal);
+      document.getElementById('modalBackdrop').addEventListener('click', closeModal);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+      document.querySelectorAll('.frame-wrapper').forEach(wrapper => {
+        wrapper.addEventListener('click', () => {
+          const iframe = wrapper.querySelector('iframe');
+          if (iframe && iframe.src) {
+            const src = iframe.getAttribute('src');
+            openModal(src);
+          }
+        });
+      });
+
+      window.addEventListener('load', scaleFrames);
+      window.addEventListener('resize', scaleFrames);
+      scaleFrames();
+    </script>
+  </body>
+</html>

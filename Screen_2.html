@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Worklly – Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Inter", sans-serif; background: #f6f6f8; color: #1f2937; min-height: 100vh; }
+
+    /* ── Top Nav ── */
+    .topnav {
+      background: #2b6cee;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 32px;
+    }
+    .topnav .logo {
+      font-weight: 800;
+      font-size: 17px;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+    .topnav .tabs { display: flex; gap: 0; height: 100%; }
+    .topnav .tab {
+      padding: 0 18px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      transition: all 0.15s;
+      border-bottom: 3px solid transparent;
+    }
+    .topnav .tab:hover { color: #fff; }
+    .topnav .tab.active {
+      color: #fff;
+      background: rgba(255,255,255,0.12);
+      border-bottom-color: #fff;
+    }
+    .topnav .right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .topnav .icon-btn {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.7); cursor: pointer; font-size: 18px;
+    }
+    .topnav .icon-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .topnav .avatar {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: #1a56c4; color: #fff; font-weight: 700; font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      border: 2px solid rgba(255,255,255,0.3);
+    }
+
+    /* ── Layout ── */
+    .layout { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 52px); }
+
+    /* ── Left Sidebar ── */
+    .sidebar { background: #fff; border-right: 1px solid #e5e7eb; padding: 24px 20px; display: flex; flex-direction: column; gap: 24px; }
+
+    .date-block { display: flex; align-items: center; gap: 14px; }
+    .date-block .day { font-size: 42px; font-weight: 800; color: #1f2937; line-height: 1; }
+    .date-block .meta { font-size: 13px; color: #6b7280; font-weight: 500; line-height: 1.5; }
+
+    .donut-area { display: flex; flex-direction: column; align-items: center; }
+    .donut-wrap { position: relative; width: 180px; height: 180px; }
+    .donut-wrap canvas { width: 100%; height: 100%; }
+    .donut-center {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .donut-center .num { font-size: 36px; font-weight: 800; color: #1f2937; line-height: 1; }
+    .donut-center .lbl { font-size: 12px; color: #6b7280; font-weight: 500; margin-top: 2px; }
+
+    .stats-row { display: flex; justify-content: space-around; width: 100%; margin-top: 16px; }
+    .stat-item { text-align: center; }
+    .stat-item .val { font-size: 22px; font-weight: 800; color: #1f2937; }
+    .stat-item .label { font-size: 11px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; margin-top: 2px; }
+    .stat-item.present .val { color: #16a34a; }
+    .stat-item.absent .val { color: #ef4444; }
+    .stat-item.late .val { color: #f59e0b; }
+
+    /* Devices */
+    .devices { border-top: 1px solid #e5e7eb; padding-top: 18px; }
+    .devices .hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .devices .hdr h3 { font-size: 14px; font-weight: 700; }
+    .devices .hdr a { font-size: 12px; color: #2b6cee; font-weight: 600; cursor: pointer; }
+    .device-card {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 12px 0; border-bottom: 1px solid #f3f4f6;
+    }
+    .device-card:last-child { border-bottom: none; }
+    .device-dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+    .device-dot.online { background: #16a34a; box-shadow: 0 0 0 3px rgba(22,163,74,0.15); }
+    .device-dot.offline { background: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+    .device-info .id { font-size: 13px; font-weight: 700; }
+    .device-info .detail { font-size: 11px; color: #6b7280; line-height: 1.5; }
+
+    /* ── Main Content ── */
+    .main { padding: 24px; display: flex; flex-direction: column; gap: 24px; overflow: auto; }
+
+    .main-header { display: flex; justify-content: space-between; align-items: center; }
+    .main-header h2 { font-size: 16px; font-weight: 700; color: #374151; }
+    .search-box {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 14px; border-radius: 10px;
+      border: 1px solid #e5e7eb; background: #fff; font-size: 13px; color: #9ca3af;
+    }
+    .search-box input {
+      border: none; outline: none; background: transparent;
+      font-size: 13px; color: #374151; width: 120px; font-family: inherit;
+    }
+    .icon-group { display: flex; gap: 6px; }
+    .icon-sm {
+      width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e5e7eb;
+      background: #fff; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 16px; color: #6b7280;
+    }
+    .icon-sm:hover { border-color: #2b6cee; color: #2b6cee; }
+
+    /* ── Employee Table ── */
+    .emp-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; }
+    .emp-table th {
+      text-align: left; padding: 12px 16px; font-size: 12px; font-weight: 600;
+      color: #6b7280; background: #f9fafb; border-bottom: 1px solid #e5e7eb;
+    }
+    .emp-table td { padding: 14px 16px; border-bottom: 1px solid #f3f4f6; font-size: 13px; vertical-align: middle; }
+    .emp-table tr:last-child td { border-bottom: none; }
+    .emp-table tr:hover { background: #f9fafb; }
+
+    .emp-avatar {
+      width: 36px; height: 36px; border-radius: 50%; font-weight: 700; font-size: 13px;
+      display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0;
+    }
+    .emp-cell { display: flex; align-items: center; gap: 12px; }
+    .emp-cell .name { font-weight: 700; font-size: 13px; }
+    .emp-cell .role { font-size: 11px; color: #6b7280; }
+    .badge-notif {
+      position: absolute; top: -3px; right: -3px; width: 16px; height: 16px;
+      border-radius: 50%; background: #ef4444; color: #fff; font-size: 9px;
+      font-weight: 800; display: flex; align-items: center; justify-content: center;
+      border: 2px solid #fff;
+    }
+
+    .late-tag { color: #ef4444; font-weight: 700; font-size: 12px; }
+    .pagination { display: flex; align-items: center; gap: 12px; justify-content: space-between; font-size: 12px; color: #6b7280; }
+    .page-btns { display: flex; gap: 4px; }
+    .page-btn {
+      width: 32px; height: 32px; border-radius: 8px; border: 1px solid #e5e7eb;
+      background: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 600; cursor: pointer; color: #374151;
+    }
+    .page-btn.active { background: #2b6cee; color: #fff; border-color: #2b6cee; }
+    .page-btn:hover:not(.active) { border-color: #2b6cee; color: #2b6cee; }
+
+    /* ── Top Performers ── */
+    .top-section { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 20px 24px; }
+    .top-section h3 { font-size: 15px; font-weight: 700; margin-bottom: 18px; color: #374151; }
+    .top-grid { display: flex; flex-wrap: wrap; gap: 24px; }
+    .top-card { display: flex; align-items: center; gap: 14px; min-width: 240px; }
+    .top-card .avatar-wrap { position: relative; }
+    .top-card .avatar-img {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: #e5e7eb; display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 16px; color: #374151;
+    }
+    .ring-score {
+      width: 52px; height: 52px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800;
+    }
+    .ring-score.green { background: conic-gradient(#16a34a var(--pct), #e5e7eb var(--pct)); color: #16a34a; }
+    .ring-score.teal { background: conic-gradient(#2b6cee var(--pct), #e5e7eb var(--pct)); color: #2b6cee; }
+    .ring-inner {
+      width: 40px; height: 40px; border-radius: 50%; background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800;
+    }
+    .top-info .name { font-size: 13px; font-weight: 700; }
+    .top-info .role { font-size: 11px; color: #6b7280; }
+  </style>
+</head>
+<body>
+
+  <!-- ═══ Top Navigation ═══ -->
+  <nav class="topnav">
+    <div class="logo">Worklly</div>
+    <div class="tabs">
+      <div class="tab active">Dashboard</div>
+      <div class="tab">Employees</div>
+      <div class="tab">Schedules</div>
+      <div class="tab">Reports</div>
+    </div>
+    <div class="right">
+      <div class="icon-btn">&#128276;</div>
+      <div class="icon-btn">&#9776;</div>
+      <div class="icon-btn">&#9881;</div>
+      <div class="avatar">AM</div>
+    </div>
+  </nav>
+
+  <div class="layout">
+
+    <!-- ═══ Left Sidebar ═══ -->
+    <aside class="sidebar">
+
+      <div class="date-block">
+        <div class="day">21</div>
+        <div class="meta">February 2025,<br>Friday</div>
+      </div>
+
+      <div class="donut-area">
+        <div class="donut-wrap">
+          <canvas id="donutChart" width="180" height="180"></canvas>
+          <div class="donut-center">
+            <div class="num">47</div>
+            <div class="lbl">Employees</div>
+          </div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-item present">
+            <div class="val">18</div>
+            <div class="label">Present</div>
+          </div>
+          <div class="stat-item absent">
+            <div class="val">29</div>
+            <div class="label">Absent</div>
+          </div>
+          <div class="stat-item late">
+            <div class="val">11</div>
+            <div class="label">Late</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="devices">
+        <div class="hdr">
+          <h3>Devices</h3>
+          <a>All devices</a>
+        </div>
+        <div class="device-card">
+          <div class="device-dot online"></div>
+          <div class="device-info">
+            <div class="id">F30962774 &nbsp;&#x1F7E2;</div>
+            <div class="detail">Last sync: 21.02.2025 11:45<br>Location: WORKLLY HQ</div>
+          </div>
+        </div>
+        <div class="device-card">
+          <div class="device-dot offline"></div>
+          <div class="device-info">
+            <div class="id">BD00E1CPA &nbsp;&#x1F534;</div>
+            <div class="detail">Last sync: 21.02.2025 09:43<br>Location: WORKLLY HQ</div>
+          </div>
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ═══ Main Content ═══ -->
+    <div class="main">
+
+      <div class="main-header">
+        <h2>What's happening at Worklly today</h2>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="search-box">
+            <span>&#128269;</span>
+            <input placeholder="Search" />
+          </div>
+          <div class="icon-group">
+            <div class="icon-sm">&#9786;</div>
+            <div class="icon-sm">&#9783;</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Employee Attendance Table -->
+      <table class="emp-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>First arrival</th>
+            <th>Last departure</th>
+            <th>Late</th>
+            <th>Early departure</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="emp-cell">
+                <div style="position:relative">
+                  <div class="emp-avatar" style="background:#f59e0b;">AM</div>
+                  <div class="badge-notif">3</div>
+                </div>
+                <div><div class="name">Anne Mäkinen</div><div class="role">Marketing Manager</div></div>
+              </div>
+            </td>
+            <td>11:08</td>
+            <td></td>
+            <td><span class="late-tag">02:08</span></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="emp-cell">
+                <div style="position:relative">
+                  <div class="emp-avatar" style="background:#8b5cf6;">SR</div>
+                  <div class="badge-notif">1</div>
+                </div>
+                <div><div class="name">Sanna Rantanen</div><div class="role">Sales Manager</div></div>
+              </div>
+            </td>
+            <td>10:38</td>
+            <td></td>
+            <td><span class="late-tag">01:38</span></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="emp-cell">
+                <div style="position:relative">
+                  <div class="emp-avatar" style="background:#2b6cee;">TK</div>
+                </div>
+                <div><div class="name">Timo Korhonen</div><div class="role">Sales Associate</div></div>
+              </div>
+            </td>
+            <td>10:31</td>
+            <td></td>
+            <td><span class="late-tag">01:31</span></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="emp-cell">
+                <div style="position:relative">
+                  <div class="emp-avatar" style="background:#16a34a;">JN</div>
+                </div>
+                <div><div class="name">Janne Nurmi</div><div class="role">Head of Sales</div></div>
+              </div>
+            </td>
+            <td>10:28</td>
+            <td></td>
+            <td><span class="late-tag">01:28</span></td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>
+              <div class="emp-cell">
+                <div style="position:relative">
+                  <div class="emp-avatar" style="background:#64748b;">MH</div>
+                </div>
+                <div><div class="name">Mikko Hämäläinen</div><div class="role">UX/UI Designer</div></div>
+              </div>
+            </td>
+            <td>09:34</td>
+            <td></td>
+            <td></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <span>Showing 1–5 of 18</span>
+        <div class="page-btns">
+          <div class="page-btn active">1</div>
+          <div class="page-btn">2</div>
+          <div class="page-btn">3</div>
+          <div class="page-btn">4</div>
+          <div class="page-btn">&larr;</div>
+          <div class="page-btn">&rarr;</div>
+        </div>
+      </div>
+
+      <!-- Top Performers -->
+      <div class="top-section">
+        <h3>Top Performers</h3>
+        <div class="top-grid">
+          <div class="top-card">
+            <div class="avatar-wrap">
+              <div class="avatar-img">TK</div>
+            </div>
+            <div class="top-info">
+              <div class="name">Timo Korhonen</div>
+              <div class="role">Head of Technical Support</div>
+            </div>
+            <div class="ring-score green" style="--pct:96%;">
+              <div class="ring-inner">96%</div>
+            </div>
+          </div>
+          <div class="top-card">
+            <div class="avatar-wrap">
+              <div class="avatar-img">JN</div>
+            </div>
+            <div class="top-info">
+              <div class="name">Janne Nurmi</div>
+              <div class="role">Technical Support Specialist</div>
+            </div>
+            <div class="ring-score teal" style="--pct:71%;">
+              <div class="ring-inner">71%</div>
+            </div>
+          </div>
+          <div class="top-card">
+            <div class="avatar-wrap">
+              <div class="avatar-img">AM</div>
+            </div>
+            <div class="top-info">
+              <div class="name">Anne Mäkinen</div>
+              <div class="role">Sales Manager</div>
+            </div>
+            <div class="ring-score green" style="--pct:77%;">
+              <div class="ring-inner">77%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("donutChart");
+    const ctx = canvas.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = 180 * dpr;
+    canvas.height = 180 * dpr;
+    ctx.scale(dpr, dpr);
+
+    const data = [
+      { value: 18, color: "#f59e0b" },
+      { value: 11, color: "#ef4444" },
+      { value: 8,  color: "#16a34a" },
+      { value: 10, color: "#2b6cee" },
+    ];
+    const total = data.reduce((s, d) => s + d.value, 0);
+    const cx = 90, cy = 90, r = 72, lw = 22;
+    let startAngle = -Math.PI / 2;
+
+    data.forEach(seg => {
+      const sweep = (seg.value / total) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, startAngle, startAngle + sweep);
+      ctx.lineWidth = lw;
+      ctx.strokeStyle = seg.color;
+      ctx.lineCap = "round";
+      ctx.stroke();
+      startAngle += sweep + 0.04;
+    });
+  </script>
+
+</body>
+</html>
